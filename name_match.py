@@ -1,6 +1,14 @@
-import random, os
+import random
 
-# Obtained the names from webscraping the roster
+# name_match.py - a game where the user will matches the first name to the last.
+# Player will choose the number of rounds/ questions and be given 3 chioces (1
+# correct, 2 false)
+
+
+# Obtained the names from webscraping the roster - stored in a dictionary.
+# In the case of multiple people having the same surname the first names are
+# grouped.
+
 name_dict = {'Flowers': 'Tre',
  'Ray': 'Wyatt',
  'McCloud': 'Nick',
