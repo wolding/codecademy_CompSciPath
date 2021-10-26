@@ -1,118 +1,90 @@
+import bs4, requests, lxml
 import random
 
-# name_match.py - a game where the user will matches the first name to the last.
-# Player will choose the number of rounds/ questions and be given 3 chioces (1
-# correct, 2 false)
+class Player:
+
+    def __init__(self, first, last, pos, number):
+        self.first = first
+        self.last = last
+        self.pos = pos
+        self.number = number
+
+    def __str__(self):
+        return f'#{self.number} {self.first} {self.last} Position: {self.pos}'
 
 
-# Obtained the names from webscraping the roster - stored in a dictionary.
-# In the case of multiple people having the same surname the first names are
-# grouped.
+def clean_data(row):
+    split_row = row.getText().strip('\n').split('\n')
+    clean_row = []
+    for data in split_row:
+        if data != '':
+            clean_row.append(data)
+    return clean_row
 
-name_dict = {'Flowers': 'Tre',
- 'Ray': 'Wyatt',
- 'McCloud': 'Nick',
- 'Hill': 'B.J./ Trey/ Holton',
- 'Hodge': 'Darius',
- 'Evans': 'Chris/ Jordan',
- 'McPherson': 'Evan',
- 'Shelvin': 'Tyler',
- 'Sample': 'Cam/ Drew',
- 'Carman': 'Jackson',
- 'Chase': "Ja'Marr",
- 'Allen': 'Ricardo/ Brandon',
- 'Apple': 'Eli',
- 'Ogunjobi': 'Larry',
- 'Hilton': 'Mike',
- 'Awuzie': 'Chidobe',
- 'Hendrickson': 'Trey',
- 'Reiff': 'Riley',
- 'Spain': 'Quinton',
- 'Davis': 'Jalen',
- 'Wilcox': 'Mitchell',
- 'Bailey': 'Markus',
- 'Davis-Gaither': 'Akeem',
- 'Wilson': 'Logan/ Brandon',
- 'Higgins': 'Tee',
- 'Burrow': 'Joe',
- 'Thomas': 'Mike/ Michael',
- 'Bell': 'Vonn',
- 'Reader': 'D.J.',
- 'Prince': 'Isaiah',
- 'Johnson': 'Fred',
- 'Irwin': 'Trenton',
- 'Perine': 'Samaje',
- 'Morgan': 'Stanley',
- 'Pratt': 'Germaine',
- 'Williams': 'Jonah/ Trayveon',
- 'Tate': 'Auden',
- 'Phillips': 'Darius',
- 'Hubbard': 'Sam',
- 'Bates III': 'Jessie',
- 'Huber': 'Kevin',
- 'Hopkins': 'Trey',
- 'Uzomah': 'C.J.',
- 'Tupou': 'Josh',
- 'Harris': 'Clark',
- 'Boyd': 'Tyler',
- 'Mixon': 'Joe',
- 'Adeniji': 'Hakeem',
- 'Kareem': 'Khalid',
- 'Smith': "D'Ante",
- 'Ossai': 'Joseph',
- "Su'a-Filo": 'Xavier',
- 'Waynes': 'Trae',
- 'Hubert': 'Wyatt',
- 'Holyfield': 'Elijah',
- 'Browning': 'Jake',
- 'Spence': 'Noah',
- 'Gaillard': 'Lamont',
- 'Bachie': 'Joe',
- 'Taylor': 'Trent',
- 'Williams Jr.': 'Pooka',
- 'Jones': 'Keandre',
- 'Daniels': 'Mike',
- 'Sutherland': 'Keaton',
- 'Wren': 'Renell',
- 'Henderson': 'Trayvon',
- 'Schreck': 'Mason',
- 'Moss': 'Thaddeus'}
+
+def create_player_list(rows):
+    players = []
+
+    for row in rows:
+        clean = clean_data(row)
+        if clean[0] != 'Player':
+            first, last = clean[0].split(maxsplit=1)
+            name, num, pos, ht, wt, age, exp, college = clean
+            # print(first, last, pos, num, 'has been added')
+            players.append(Player(first, last, pos, num))
+    
+    return players
 
 # Returns shuffled lists of first and last names
-def create_lists(dict):
-    last_names = []
-    first_names = []
-    for last, first in name_dict.items():
-        last_names.append(last)
-        first_names.append(first)
-    random.shuffle(first_names)
-    random.shuffle(last_names)
-    return first_names, last_names
+def create_lists(players):
+    firsts = [player.first for player in players]
+    lasts = [player.last for player in players]
+    random.shuffle(firsts)
+    random.shuffle(lasts)
+    return firsts, lasts
+    
+
+def check_duplicates(choices, first):
+    while len(set(choices)) != 3:
+        c2 = []
+        for item in choices:
+            if item not in c2:
+                c2.append(item)
+        while len(c2) < 3:
+            new = random.sample(set(first), 1)
+            if new not in c2:
+                c2.extend(new)
+        choices = c2
+    return choices
 
 
-def ask_question(first_names, last_names, rounds):
+def ask_question(first, last, rounds):
     score = 0
     for i in range(rounds):
+        # Find the class instance that matches the last name
+        for player in players:
+            if last[i] == player.last:
+                chosen = player
         # Questions will be the shuffled last names in order for i rounds
-        print(f'{i+1}. _________ {last_names[i]}')
+        print(f'{i+1}. _________ {chosen.last} - {chosen.pos}')
         print('\n')
-        # create list of 1 correct and 2 incorrect names and shuffle
         choices = []
-        choices.append(name_dict[last_names[i]])
-        first_names.remove(name_dict[last_names[i]])
-        choices = choices + random.sample(first_names, 2)
-        random.shuffle(choices)
+        choices.append(chosen.first)
+        choices = choices + random.sample(first, 2)
+        checked_choices = check_duplicates(choices,first)
+        random.shuffle(checked_choices)
 
         for x in range(1,4):
             print(f'\t {x}. {choices[x-1]}')
         guess_index = make_guess()
-        
-        if choices[guess_index] == name_dict[last_names[i]]:
+
+        if choices[guess_index] == chosen.first:
             score+=1
-            print('Correct!\n')
+            print(f'Correct! {chosen}\n')
         else:
-            print(f'Incorrect. The answer was {name_dict[last_names[i]]} {last_names[i]}\n')
+            print(f'Incorrect. The answer was {chosen}\n')
     print(f'You scored {score}/{rounds}')
+
 
 # converts guess (1,2,3) to index (0,1,2)
 def make_guess():
@@ -126,19 +98,29 @@ def make_guess():
     return int(guess-1)
 
 
+res = requests.get("https://www.bengals.com/team/players-roster/")
+soup = bs4.BeautifulSoup(res.text, 'lxml')
+rows = soup.select('tr')
+
+players = create_player_list(rows)
+
+
+
+# GAME LOGIC
+
 in_game = True
 while in_game:
-    fn, ln = create_lists(name_dict)
+    fn, ln = create_lists(players)
     try:
         rnds = int(input("How many rounds would you like to play?"))
-        if rnds <= 0 | rnds > len(name_dict):
+        if rnds <= 0 | rnds > len(players):
             raise Exception
     
     except ValueError:
-        print(f'Must be a number below {len(name_dict)}')
+        print(f'Must be a number below {len(players)}')
         break
     except Exception:
-        print(f"Number must be between 1 and {len(name_dict)}")
+        print(f"Number must be between 1 and {len(players)}")
         break
 
     ask_question(fn, ln, rnds)
@@ -149,5 +131,5 @@ while in_game:
     if play == 'y':
         pass
 
-else:
-    in_game = False
+    else:
+        in_game = False
